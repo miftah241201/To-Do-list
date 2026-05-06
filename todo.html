@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>To Do List Pro</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="row">
+
+        <!-- KIRI -->
+        <div class="col-md-4">
+            <h4>Deskripsi Program</h4>
+            <p>
+                Aplikasi To-Do List ini digunakan untuk mencatat kegiatan harian.
+                Data tersimpan otomatis di browser (LocalStorage), serta mendukung waktu kegiatan.
+            </p>
+        </div>
+
+        <!-- KANAN -->
+        <div class="col-md-8">
+
+            <!-- ALERT -->
+            <div id="alertBox"></div>
+
+            <!-- FORM -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <input type="hidden" id="editIndex">
+
+                    <div class="mb-2">
+                        <label>Nama Kegiatan</label>
+                        <input type="text" id="nama" class="form-control">
+                    </div>
+
+                    <div class="mb-2">
+                        <label>Tanggal</label>
+                        <input type="date" id="tanggal" class="form-control">
+                    </div>
+
+                    <div class="mb-2">
+                        <label>Jam Mulai</label>
+                        <input type="time" id="jamMulai" class="form-control">
+                    </div>
+
+                    <div class="mb-2">
+                        <label>Jam Selesai</label>
+                        <input type="time" id="jamSelesai" class="form-control">
+                    </div>
+
+                    <button onclick="simpanData()" class="btn btn-primary mt-2">
+                        Simpan
+                    </button>
+
+                    <button onclick="clearData()" class="btn btn-danger mt-2">
+                        Hapus Semua
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABEL -->
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Kegiatan</th>
+                        <th>Tanggal</th>
+                        <th>Jam</th>
+                        <th>Selesai</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelData"></tbody>
+            </table>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("todoData")) || [];
+
+function simpanLocal() {
+    localStorage.setItem("todoData", JSON.stringify(data));
+}
+
+function showAlert(msg, type="success") {
+    document.getElementById("alertBox").innerHTML = `
+        <div class="alert alert-${type}">${msg}</div>
+    `;
+    setTimeout(() => {
+        document.getElementById("alertBox").innerHTML = "";
+    }, 2000);
+}
+
+function formatTanggal(tgl) {
+    let date = new Date(tgl);
+    return date.toLocaleDateString("id-ID", {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+}
+
+function renderTable() {
+    let tabel = document.getElementById("tabelData");
+    tabel.innerHTML = "";
+
+    data.forEach((item, index) => {
+        tabel.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td ${item.selesai ? 'style="text-decoration: line-through;"' : ''}>
+                    ${item.nama}
+                </td>
+                <td>${formatTanggal(item.tanggal)}</td>
+                <td>${item.jamMulai} - ${item.jamSelesai}</td>
+                <td>
+                    <input type="checkbox" ${item.selesai ? 'checked' : ''} 
+                        onchange="toggleSelesai(${index})">
+                </td>
+                <td>
+                    <button onclick="editData(${index})" class="btn btn-warning btn-sm">Edit</button>
+                    <button onclick="hapusData(${index})" class="btn btn-danger btn-sm">Hapus</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function simpanData() {
+    let nama = document.getElementById("nama").value;
+    let tanggal = document.getElementById("tanggal").value;
+    let jamMulai = document.getElementById("jamMulai").value;
+    let jamSelesai = document.getElementById("jamSelesai").value;
+    let editIndex = document.getElementById("editIndex").value;
+
+    if (nama === "" || tanggal === "" || jamMulai === "" || jamSelesai === "") {
+        showAlert("Semua data wajib diisi!", "danger");
+        return;
+    }
+
+    if (editIndex === "") {
+        data.push({ nama, tanggal, jamMulai, jamSelesai, selesai: false });
+        showAlert("Data berhasil ditambahkan");
+    } else {
+        data[editIndex].nama = nama;
+        data[editIndex].tanggal = tanggal;
+        data[editIndex].jamMulai = jamMulai;
+        data[editIndex].jamSelesai = jamSelesai;
+        showAlert("Data berhasil diupdate");
+        document.getElementById("editIndex").value = "";
+    }
+
+    document.getElementById("nama").value = "";
+    document.getElementById("tanggal").value = "";
+    document.getElementById("jamMulai").value = "";
+    document.getElementById("jamSelesai").value = "";
+
+    simpanLocal();
+    renderTable();
+}
+
+function editData(index) {
+    document.getElementById("nama").value = data[index].nama;
+    document.getElementById("tanggal").value = data[index].tanggal;
+    document.getElementById("jamMulai").value = data[index].jamMulai;
+    document.getElementById("jamSelesai").value = data[index].jamSelesai;
+    document.getElementById("editIndex").value = index;
+}
+
+function hapusData(index) {
+    if (confirm("Yakin hapus data?")) {
+        data.splice(index, 1);
+        simpanLocal();
+        renderTable();
+        showAlert("Data dihapus");
+    }
+}
+
+function toggleSelesai(index) {
+    data[index].selesai = !data[index].selesai;
+    simpanLocal();
+    renderTable();
+}
+
+function clearData() {
+    if (confirm("Hapus semua data?")) {
+        data = [];
+        simpanLocal();
+        renderTable();
+        showAlert("Semua data dihapus", "warning");
+    }
+}
+
+// Load awal
+renderTable();
+</script>
+
+</body>
+</html>
